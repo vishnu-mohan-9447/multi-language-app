@@ -1,0 +1,11 @@
+# Use official Tomcat image
+FROM tomcat:10-jdk17-temurin
+
+# Copy the WAR file
+COPY target/dashboard-1.0-SNAPSHOT.war /usr/local/tomcat/webapps/dashboard.war
+
+# Expose Tomcat default port
+EXPOSE 8080
+
+# Start Tomcat
+CMD ["catalina.sh", "run"]

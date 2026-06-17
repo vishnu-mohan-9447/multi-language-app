@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: java-frontend
+  namespace: polyglot-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: java-frontend
+  template:
+    metadata:
+      labels:
+        app: java-frontend
+    spec:
+      containers:
+      - name: java-frontend
+        image: poly-glot-java-frontend:latest   # Change to your ECR image later
+        imagePullPolicy: Never                 # For local Minikube/Kind
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "512Mi"
+          limits:
+            cpu: "500m"
+            memory: "768Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10

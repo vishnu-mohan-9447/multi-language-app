@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python-module
+  namespace: polyglot-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: python-module
+  template:
+    metadata:
+      labels:
+        app: python-module
+    spec:
+      containers:
+      - name: python-module
+        image: poly-glot-python-module:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 5000
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"

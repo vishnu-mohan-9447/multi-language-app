@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  java-frontend:
+    build: ./java-module
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+    depends_on:
+      - python-module
+      - go-module
+      - nodejs-module
+    networks:
+      - app-network
+
+  python-module:
+    build: ./python-module
+    ports:
+      - "5000:5000"
+    networks:
+      - app-network
+
+  go-module:
+    build: ./go-module
+    ports:
+      - "8081:8081"
+    networks:
+      - app-network
+
+  nodejs-module:
+    build: ./nodejs-module
+    ports:
+      - "3000:3000"
+    networks:
+      - app-network
+
+  # Optional local DB (replace with RDS connection string in prod)
+  # postgres:
+  #   image: postgres:15
+  #   ...
+
+networks:
+  app-network:
+    driver: bridge

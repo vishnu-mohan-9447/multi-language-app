@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nodejs-module
+  namespace: polyglot-app
+spec:
+  selector:
+    app: nodejs-module
+  ports:
+  - port: 3000
+    targetPort: 3000

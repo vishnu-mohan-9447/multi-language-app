@@ -1,0 +1,85 @@
+# Specifies the version of the Docker Compose file format. 
+# Version 3.8 is highly stable and widely compatible with modern Docker engines.
+version: '3.8'
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # 1. JAVA USER INTERFACE / FRONTEND (Tomcat Web Application)
+  # ---------------------------------------------------------------------------
+  java-frontend:
+    # Path to the directory containing the Dockerfile for this specific module.
+    # Docker Compose will automatically look into './java-module/Dockerfile' to compile the image.
+    build: ./java-module
+    
+    # Custom name assigned to the container instance when it initializes.
+    # This prevents Docker from assigning a default random/incremental string name.
+    container_name: poly-glot-java-frontend-1
+    
+    # Port Mapping configuration: [Host Machine Port] : [Internal Container Port]
+    # Opens a tunnel so your host machine web browser can reach Tomcat listening inside the container on 8080.
+    ports:
+      - "8080:8080"
+      
+    # Variables injected directly into the running application container environment.
+    environment:
+      # Instructs Spring Boot to load configurations tied specifically to the 'prod' profile.
+      - SPRING_PROFILES_ACTIVE=prod
+      
+    # Startup Ordering enforcement:
+    # Tells Docker Compose that the backend microservices must transition to a running state 
+    # BEFORE starting the java-frontend. This prevents early network fetch errors.
+    depends_on:
+      - python-module
+      - go-module
+      - nodejs-module
+      
+    # Assigns this container to a specific network lane.
+    # Crucial for cross-container service name communication.
+    networks:
+      - app-network
+
+  # ---------------------------------------------------------------------------
+  # 2. PYTHON MICROSERVICE (Flask / User Management API)
+  # ---------------------------------------------------------------------------
+  python-module:
+    build: ./python-module
+    container_name: poly-glot-python-module-1
+    ports:
+      - "5000:5000"  # Maps local machine port 5000 to Flask API internal port 5000
+    networks:
+      - app-network  # Must match java-frontend's network to allow inner communication
+
+  # ---------------------------------------------------------------------------
+  # 3. GO MICROSERVICE (Golang / Product Catalog API)
+  # ---------------------------------------------------------------------------
+  go-module:
+    build: ./go-module
+    container_name: poly-glot-go-module-1
+    ports:
+      - "8081:8081"  # Maps local machine port 8081 to Go service internal port 8081
+    networks:
+      - app-network
+
+  # ---------------------------------------------------------------------------
+  # 4. NODE.JS MICROSERVICE (Express / Orders Aggregator API)
+  # ---------------------------------------------------------------------------
+  nodejs-module:
+    build: ./nodejs-module
+    container_name: poly-glot-nodejs-module-1
+    ports:
+      - "3000:3000"  # Maps local machine port 3000 to Node.js App internal port 3000
+    networks:
+      - app-network
+
+# -----------------------------------------------------------------------------
+# ISOLATED LAYER NETWORKING DEFINITIONS
+# -----------------------------------------------------------------------------
+networks:
+  # Creates a software-defined overlay space where all microservices can discover each other.
+  app-network:
+    # 'bridge' configuration represents an isolated network created locally on your host engine.
+    # Because all services reside on this network, the Java container can securely resolve 
+    # internal names (e.g. 'http://python-module:5000/users') via Docker's built-in DNS 
+    # without exposing raw internal APIs to the public internet namespace.
+    driver: bridge
