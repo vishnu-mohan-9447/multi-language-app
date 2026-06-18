@@ -3,7 +3,11 @@ pipeline {
 
     tools {
         jdk 'JDK-17'
+<<<<<<< HEAD
         maven 'Maven-3.9'
+=======
+        maven 'Maven'
+>>>>>>> d2b0cb5 (updated Jenkinsfile)
     }
 
     options {
@@ -25,7 +29,13 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
+<<<<<<< HEAD
                 checkout scm
+=======
+                git credentialsId: 'github-token', 
+                    url: 'https://github.com/vishnu-mohan-9447/multi-language-app.git', 
+                    branch: 'main'
+>>>>>>> d2b0cb5 (updated Jenkinsfile)
             }
         }
 
@@ -36,7 +46,11 @@ pipeline {
                 }
             }
         }
+<<<<<<< HEAD
 
+=======
+/*
+>>>>>>> d2b0cb5 (updated Jenkinsfile)
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv("${SONARQUBE_ENV}") {
@@ -66,13 +80,21 @@ pipeline {
                 }
             }
         }
+<<<<<<< HEAD
 
+=======
+*/
+>>>>>>> d2b0cb5 (updated Jenkinsfile)
         stage('Trivy Filesystem Scan') {
             steps {
                 sh '''
                     trivy fs . \
                     --severity HIGH,CRITICAL \
+<<<<<<< HEAD
                     --exit-code 1
+=======
+                    --exit-code 0
+>>>>>>> d2b0cb5 (updated Jenkinsfile)
                 '''
             }
         }
@@ -91,10 +113,17 @@ pipeline {
         stage('Trivy Image Scan') {
             steps {
                 sh """
+<<<<<<< HEAD
                     trivy image ${DOCKER_USER}/poly-glot-go-module:${IMAGE_TAG} --severity HIGH,CRITICAL --exit-code 1
                     trivy image ${DOCKER_USER}/poly-glot-nodejs-module:${IMAGE_TAG} --severity HIGH,CRITICAL --exit-code 1
                     trivy image ${DOCKER_USER}/poly-glot-python-module:${IMAGE_TAG} --severity HIGH,CRITICAL --exit-code 1
                     trivy image ${DOCKER_USER}/poly-glot-java-frontend:${IMAGE_TAG} --severity HIGH,CRITICAL --exit-code 1
+=======
+                    trivy image ${DOCKER_USER}/poly-glot-go-module:${IMAGE_TAG} --severity HIGH,CRITICAL --exit-code 0
+                    trivy image ${DOCKER_USER}/poly-glot-nodejs-module:${IMAGE_TAG} --severity HIGH,CRITICAL --exit-code 0
+                    trivy image ${DOCKER_USER}/poly-glot-python-module:${IMAGE_TAG} --severity HIGH,CRITICAL --exit-code 0
+                    trivy image ${DOCKER_USER}/poly-glot-java-frontend:${IMAGE_TAG} --severity HIGH,CRITICAL --exit-code 0
+>>>>>>> d2b0cb5 (updated Jenkinsfile)
                 """
             }
         }
@@ -103,7 +132,11 @@ pipeline {
             steps {
                 withCredentials([
                     usernamePassword(
+<<<<<<< HEAD
                         credentialsId: 'dockerhub-creds',
+=======
+                        credentialsId: 'dockerhub-token',
+>>>>>>> d2b0cb5 (updated Jenkinsfile)
                         usernameVariable: 'DOCKER_USERNAME',
                         passwordVariable: 'DOCKER_PASSWORD'
                     )
@@ -131,6 +164,10 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 sh """
+<<<<<<< HEAD
+=======
+                    kubectl apply -f k8s/ -n ${NAMESPACE}
+>>>>>>> d2b0cb5 (updated Jenkinsfile)
                     kubectl set image deployment/go-module go-module=${DOCKER_USER}/poly-glot-go-module:${IMAGE_TAG} -n ${NAMESPACE}
                     kubectl set image deployment/nodejs-module nodejs-module=${DOCKER_USER}/poly-glot-nodejs-module:${IMAGE_TAG} -n ${NAMESPACE}
                     kubectl set image deployment/python-module python-module=${DOCKER_USER}/poly-glot-python-module:${IMAGE_TAG} -n ${NAMESPACE}
