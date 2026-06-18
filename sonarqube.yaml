@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sonarqube
+  namespace: sonarqube
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sonarqube
+  template:
+    metadata:
+      labels:
+        app: sonarqube
+    spec:
+      containers:
+      - name: sonarqube
+        image: sonarqube:lts-community
+        ports:
+        - containerPort: 9000
+        env:
+        - name: SONAR_SEARCH_JAVAADDITIONALOPTS
+          value: "-Dnode.store.allow_mmap=false" # Crucial workaround for Elasticsearch on basic/local nodes
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "3Gi"
+            cpu: "2000m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sonarqube-service
+  namespace: sonarqube
+spec:
+  type: NodePort # Use LoadBalancer if you are on an AWS EKS setup with an Ingress controller
+  selector:
+    app: sonarqube
+  ports:
+    - protocol: TCP
+      port: 9000
+      targetPort: 9000
+      nodePort: 30005 # Accessible via http://<Node-IP>:30005
