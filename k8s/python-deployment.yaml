@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
       - name: python-module
-        image: poly-glot-python-module:latest
-        imagePullPolicy: Never
+        image: vishnumohan9447/poly-glot-python-module 	 
+        imagePullPolicy: Always 
         ports:
         - containerPort: 5000
         resources:

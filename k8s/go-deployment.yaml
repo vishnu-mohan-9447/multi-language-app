@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: go-module
-        image: poly-glot-go-module:latest
-        imagePullPolicy: Never
+        image: vishnumohan9447/poly-glot-go-module 
+        imagePullPolicy: Always 
         ports:
         - containerPort: 8081

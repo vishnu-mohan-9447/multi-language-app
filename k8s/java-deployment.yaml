@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
       - name: java-frontend
-        image: poly-glot-java-frontend:latest   # Change to your ECR image later
-        imagePullPolicy: Never                 # For local Minikube/Kind
+        image: vishnumohan9447/poly-glot-java-frontend:latest   # Change to your ECR image later
+        imagePullPolicy: Always              # For local Minikube/Kind
         ports:
         - containerPort: 8080
         env:
@@ -33,5 +33,5 @@ spec:
           httpGet:
             path: /health
             port: 8080
-          initialDelaySeconds: 30
+          initialDelaySeconds: 60
           periodSeconds: 10
