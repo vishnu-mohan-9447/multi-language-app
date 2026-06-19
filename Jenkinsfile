@@ -1,36 +1,31 @@
 pipeline {
     agent any
-
     tools {
         jdk 'JDK-17'
         maven 'Maven'
     }
-
     options {
         timestamps()
         buildDiscarder(logRotator(
             numToKeepStr: '20',
             artifactNumToKeepStr: '10'
         ))
-        timeout(time: 30, unit: 'MINUTES')
+        timeout(time: 40, unit: 'MINUTES')
     }
-
     environment {
         NAMESPACE = "polyglot-app"
         DOCKER_USER = "vishnumohan9447"
         IMAGE_TAG = "${BUILD_NUMBER}"
         SONARQUBE_ENV = "SonarQube"
     }
-
     stages {
         stage('Checkout') {
             steps {
-                git credentialsId: 'github-token', 
-                    url: 'https://github.com/vishnu-mohan-9447/multi-language-app.git', 
+                git credentialsId: 'github-token',
+                    url: 'https://github.com/vishnu-mohan-9447/multi-language-app.git',
                     branch: 'main'
             }
         }
-
         stage('Build & Unit Test') {
             steps {
                 dir('java-module') {
@@ -38,7 +33,6 @@ pipeline {
                 }
             }
         }
-
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv("${SONARQUBE_ENV}") {
@@ -60,7 +54,6 @@ pipeline {
                 }
             }
         }
-
         stage('Quality Gate') {
             steps {
                 timeout(time: 10, unit: 'MINUTES') {
@@ -68,7 +61,6 @@ pipeline {
                 }
             }
         }
-
         stage('Trivy Filesystem Scan') {
             steps {
                 sh '''
@@ -78,7 +70,6 @@ pipeline {
                 '''
             }
         }
-
         stage('Build Docker Images') {
             steps {
                 sh """
@@ -89,7 +80,6 @@ pipeline {
                 """
             }
         }
-
         stage('Trivy Image Scan') {
             steps {
                 sh """
@@ -100,7 +90,6 @@ pipeline {
                 """
             }
         }
-
         stage('Push Images') {
             steps {
                 withCredentials([
@@ -112,7 +101,6 @@ pipeline {
                 ]) {
                     sh """
                         echo \$DOCKER_PASSWORD | docker login -u \$DOCKER_USERNAME --password-stdin
-                        
                         docker push ${DOCKER_USER}/poly-glot-go-module:${IMAGE_TAG}
                         docker push ${DOCKER_USER}/poly-glot-nodejs-module:${IMAGE_TAG}
                         docker push ${DOCKER_USER}/poly-glot-python-module:${IMAGE_TAG}
@@ -121,7 +109,6 @@ pipeline {
                 }
             }
         }
-
         stage('Create Namespace') {
             steps {
                 sh """
@@ -129,40 +116,54 @@ pipeline {
                 """
             }
         }
-
-        stage('Deploy to Kubernetes') {
+        stage('Deploy to Kubernetes + Istio') {
             steps {
-                sh """
-                    kubectl apply -f k8s/ -n ${NAMESPACE}
-                    kubectl set image deployment/go-module go-module=${DOCKER_USER}/poly-glot-go-module:${IMAGE_TAG} -n ${NAMESPACE}
-                    kubectl set image deployment/nodejs-module nodejs-module=${DOCKER_USER}/poly-glot-nodejs-module:${IMAGE_TAG} -n ${NAMESPACE}
-                    kubectl set image deployment/python-module python-module=${DOCKER_USER}/poly-glot-python-module:${IMAGE_TAG} -n ${NAMESPACE}
-                    kubectl set image deployment/java-frontend java-frontend=${DOCKER_USER}/poly-glot-java-frontend:${IMAGE_TAG} -n ${NAMESPACE}
-                """
+                script {
+                    echo "🚀 Applying Kubernetes base manifests..."
+                    sh """
+                        kubectl apply -k k8s/base -n ${NAMESPACE} || kubectl apply -f k8s/base/ -n ${NAMESPACE}
+                    """
+
+                    echo "🔀 Applying Istio resources (Gateway, VirtualService, DestinationRule)..."
+                    sh """
+                        kubectl apply -f k8s/istio/ -n ${NAMESPACE}
+                    """
+
+                    echo "📦 Updating container images..."
+                    sh """
+                        kubectl set image deployment/go-module go-module=${DOCKER_USER}/poly-glot-go-module:${IMAGE_TAG} -n ${NAMESPACE}
+                        kubectl set image deployment/nodejs-module nodejs-module=${DOCKER_USER}/poly-glot-nodejs-module:${IMAGE_TAG} -n ${NAMESPACE}
+                        kubectl set image deployment/python-module python-module=${DOCKER_USER}/poly-glot-python-module:${IMAGE_TAG} -n ${NAMESPACE}
+                        kubectl set image deployment/java-frontend java-frontend=${DOCKER_USER}/poly-glot-java-frontend:${IMAGE_TAG} -n ${NAMESPACE}
+                    """
+
+                    echo "🔄 Restarting deployments to ensure Istio sidecars are injected..."
+                    sh "kubectl rollout restart deployment -n ${NAMESPACE}"
+                }
             }
         }
-
         stage('Verify Rollout') {
             steps {
                 sh """
+                    echo "Waiting for deployments to stabilize..."
                     kubectl rollout status deployment/go-module -n ${NAMESPACE} --timeout=300s
-                    kubectl rollout status deployment/nodejs-module -n ${NAMESPACE} --timeout=300s
-                    kubectl rollout status deployment/python-module -n ${NAMESPACE} --timeout=300s
+                    kubectl rollout status deployment/nodejs-module -n ${NAMESPACE} --timeout=180s
+                    kubectl rollout status deployment/python-module -n ${NAMESPACE} --timeout=180s
                     kubectl rollout status deployment/java-frontend -n ${NAMESPACE} --timeout=300s
                 """
             }
         }
     }
-
     post {
         success {
-            echo 'CI/CD Pipeline Completed Successfully'
+            echo '✅ CI/CD Pipeline with Istio Traffic Splitting Completed Successfully!'
+            echo '🌐 Access your app via Istio Ingress Gateway'
         }
         failure {
             sh """
-                kubectl get pods -n ${NAMESPACE} || true
-                kubectl get svc -n ${NAMESPACE} || true
-                kubectl get deployments -n ${NAMESPACE} || true
+                echo "❌ Deployment Failed. Current status:"
+                kubectl get pods,svc,deploy -n ${NAMESPACE} || true
+                kubectl get gateway,virtualservice,destinationrule -n ${NAMESPACE} || true
             """
         }
         always {
