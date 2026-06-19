@@ -119,17 +119,17 @@ pipeline {
         stage('Deploy to Kubernetes + Istio') {
             steps {
                 script {
-                    echo "🚀 Applying Kubernetes base manifests..."
+                    echo "Applying Kubernetes base manifests..."
                     sh """
                         kubectl apply -k k8s/base -n ${NAMESPACE} || kubectl apply -f k8s/base/ -n ${NAMESPACE}
                     """
 
-                    echo "🔀 Applying Istio resources (Gateway, VirtualService, DestinationRule)..."
+                    echo "Applying Istio resources (Gateway, VirtualService, DestinationRule)..."
                     sh """
                         kubectl apply -f k8s/istio/ -n ${NAMESPACE}
                     """
 
-                    echo "📦 Updating container images..."
+                    echo "Updating container images..."
                     sh """
                         kubectl set image deployment/go-module go-module=${DOCKER_USER}/poly-glot-go-module:${IMAGE_TAG} -n ${NAMESPACE}
                         kubectl set image deployment/nodejs-module nodejs-module=${DOCKER_USER}/poly-glot-nodejs-module:${IMAGE_TAG} -n ${NAMESPACE}
@@ -137,7 +137,7 @@ pipeline {
                         kubectl set image deployment/java-frontend java-frontend=${DOCKER_USER}/poly-glot-java-frontend:${IMAGE_TAG} -n ${NAMESPACE}
                     """
 
-                    echo "🔄 Restarting deployments to ensure Istio sidecars are injected..."
+                    echo "Restarting deployments to ensure Istio sidecars are injected..."
                     sh "kubectl rollout restart deployment -n ${NAMESPACE}"
                 }
             }
@@ -156,12 +156,12 @@ pipeline {
     }
     post {
         success {
-            echo '✅ CI/CD Pipeline with Istio Traffic Splitting Completed Successfully!'
-            echo '🌐 Access your app via Istio Ingress Gateway'
+            echo 'CI/CD Pipeline with Istio Traffic Splitting Completed Successfully!'
+            echo 'Access your app via Istio Ingress Gateway'
         }
         failure {
             sh """
-                echo "❌ Deployment Failed. Current status:"
+                echo "Deployment Failed. Current status:"
                 kubectl get pods,svc,deploy -n ${NAMESPACE} || true
                 kubectl get gateway,virtualservice,destinationrule -n ${NAMESPACE} || true
             """
